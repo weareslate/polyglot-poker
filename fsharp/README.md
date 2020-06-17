@@ -8,6 +8,6 @@
 ## Run the Scripts
 
 ```
-$ dotnet fsi main.fsx
+$ dotnet fsi main.fsx "4S 4H 4D 4C AS; JS KD QC 10H 2C"
 ```
 
