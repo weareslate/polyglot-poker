@@ -18,7 +18,7 @@ def parse_hand(hand):
           suit in parsed
         }) == 1
 
-        high_card_counts = (1, 1, 1, 1, ranks[-1: ][0])
+        high_card_counts = (1, 1, 1, 1, ranks[0])
         straight_counts = (3, 1, 1, 2, 1)
         flush_counts = (3, 1, 2, 1, 1)
         straight_flush_counts = (4, 2, 1, 1, 1 + ranks[-1: ][0])
@@ -31,7 +31,8 @@ def parse_hand(hand):
     return counts, ranks
 
 def best_hands(hands):
-    resp = [(i, parse_hand(hand)) for i, hand in enumerate(hands)]
-    winner = sorted(resp, key=lambda x: x[1], reverse=True)[0][0]
-    return [hands[winner]]
+    r = [(i, parse_hand(hand)) for i, hand in enumerate(hands)]
+    h = sorted(r, key = lambda x: x[1], reverse = True)
+    m = max(h, key=lambda x: x[1][0])[1][0]
+    return [hands[s[0]] for s in h if s[1][0] == m]
 
