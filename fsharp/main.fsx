@@ -120,8 +120,13 @@ let elementwise (list: 'T list) elementCount  =
 
 let straightRuns = elementwise allFaces 5
 
-let ofAKind groupByFn cards =
-  cards |> List.groupBy groupByFn |> List.map (fun (_,values) -> values |> List.length) |> List.countBy id |> List.max
+let ofAKind groupByFn a cards =
+  cards |> List.groupBy groupByFn 
+  |> List.map (fun (_,values) -> values |> List.length) |> List.countBy id 
+  |> List.max |> Some |> Option.filter (fun p -> p = a) 
+// before we were doing match something with (3,1) -> Some answer. basically if it is the right pair then return some
+// we can shorten that match down, by converting output to an option, then filtering based on whether the pair
+// matches the input pair condition 
 
 let (| Straight | _ |) (cards: Card list) =
   straightRuns |> List.contains (cards |> List.map fst) |> function
@@ -129,34 +134,22 @@ let (| Straight | _ |) (cards: Card list) =
   | false -> None
 
 let (| Flush | _ |) (cards: Card list) =
-  cards |> ofAKind snd |> function
-  | (5,1) -> Some cards
-  | _ -> None
+  cards |> ofAKind snd (5,1)
 
 let (| FourOfAKind | _ |) (cards: Card list) =
-  cards |> ofAKind fst |> function
-  | (4,1) -> Some cards
-  | _ -> None
+  cards |> ofAKind fst (4,1)
  
 let (| ThreeOfAKind | _ |) (cards: Card list) =
-  cards |> ofAKind fst |> function
-  | (3,1) -> Some cards
-  | _ -> None
+  cards |> ofAKind fst (3,1)
 
 let (| TwoPair | _ |) (cards: Card list) = 
-  cards |> ofAKind fst |> function
-  | (2,2) -> Some cards
-  | _ -> None
+  cards |> ofAKind fst (2,2)
 
 let (| Pair | _ |) (cards: Card list) =
-  cards |> ofAKind fst |> function
-  | (2,1) -> Some cards
-  | _ -> None
+  cards |> ofAKind fst (2,1)
 
 let (| HighCard | _ |) (cards: Card list) =
-  cards |> ofAKind fst |> function
-  | (1,5) -> Some cards
-  | _ -> None
+  cards |> ofAKind fst (1,5)
 
 let handInput = fsi.CommandLineArgs.[1]
 
@@ -180,4 +173,3 @@ match theTwoHands with
     let secondHand = hands.[1]
     displayHand secondHand
 | None -> printfn "No combinations"
-
