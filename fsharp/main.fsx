@@ -124,47 +124,37 @@ let ofAKind groupByFn cards =
   cards |> List.groupBy groupByFn |> List.map (fun (_,values) -> values |> List.length) |> List.countBy id |> List.max
 
 let (| Straight | _ |) (cards: Card list) =
-  match straightRuns |> List.contains (cards |> List.map fst) with
+  straightRuns |> List.contains (cards |> List.map fst) |> function
   | true -> Some cards
   | false -> None
 
 let (| Flush | _ |) (cards: Card list) =
-  let allSameSuit = cards |> ofAKind snd
-  match allSameSuit with
+  cards |> ofAKind snd |> function
   | (5,1) -> Some cards
   | _ -> None
 
 let (| FourOfAKind | _ |) (cards: Card list) =
-  let fourSameFace = cards |> ofAKind fst
-  match fourSameFace with
+  cards |> ofAKind fst |> function
   | (4,1) -> Some cards
   | _ -> None
  
 let (| ThreeOfAKind | _ |) (cards: Card list) =
-  let threeOfAKind = cards |> ofAKind fst
-  match threeOfAKind with
+  cards |> ofAKind fst |> function
   | (3,1) -> Some cards
   | _ -> None
 
 let (| TwoPair | _ |) (cards: Card list) = 
-  let twoPair = cards |> ofAKind fst
-  match twoPair with
+  cards |> ofAKind fst |> function
   | (2,2) -> Some cards
   | _ -> None
 
 let (| Pair | _ |) (cards: Card list) =
-  let singlePair = cards |> ofAKind fst
-  match singlePair with
+  cards |> ofAKind fst |> function
   | (2,1) -> Some cards
   | _ -> None
 
 let (| HighCard | _ |) (cards: Card list) =
-  let singlePair = cards 
-                |> List.groupBy fst 
-                |> List.map (fun (key,values) -> values |> List.length) 
-                |> List.countBy id 
-                |> List.max
-  match singlePair with
+  cards |> ofAKind fst |> function
   | (1,5) -> Some cards
   | _ -> None
 
