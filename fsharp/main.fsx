@@ -15,21 +15,11 @@ type Face =
   | King
   | Ace
 
-type Suit =
-  | Hearts
-  | Spades
-  | Diamonds
-  | Clubs
+type Suit = Hearts | Spades | Diamonds | Clubs
 
 type Card = Face * Suit
 
 type Hand = Card list
-
-let bindMap f b a =
-  a |> Option.bind ( fun realA ->
-    b |> Option.map ( fun realB ->
-      f realA realB
-  ))
 
 let parsingFaceMap =
   [
@@ -82,28 +72,17 @@ let collectHand items =
   Option.map (fun items -> items |> List.ofSeq) items
 
 let optionFoldMap (list: 'T option seq) =
-  list 
-  |> Seq.fold (fun agg elem -> 
-                  agg |> Option.bind ( fun l -> 
-                    elem |> Option.map ( fun card ->
-                      l @ [ card ]
-                    )
-                  )) (Some []) 
+  Seq.foldBack (Option.map2 (fun x y -> x::y)) list (Some [])
 
 let parseHand (hand: string) =
-  let cards = hand.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
-  cards
+  hand.Split([|' '|], StringSplitOptions.RemoveEmptyEntries) 
   |> Seq.map parseCard
   |> optionFoldMap
 
 let understandHands (hands: string) = 
-  let parts = hands.Split([|';'|], StringSplitOptions.RemoveEmptyEntries) 
-  let parsedHands = 
-    parts
-    |> Seq.map parseHand
-    |> optionFoldMap
-
-  parsedHands
+  hands.Split([|';'|], StringSplitOptions.RemoveEmptyEntries) 
+  |> Seq.map parseHand
+  |> optionFoldMap
 
 let allFaces = [ Two; Three; Four; Five; Six; Seven; Eight; Nine; Ten; Jack; Queen; King; Ace]
 
@@ -112,26 +91,22 @@ let allFaces = [ Two; Three; Four; Five; Six; Seven; Eight; Nine; Ten; Jack; Que
 let elementwise (list: 'T list) elementCount  =
   let mutable ans = []
   for i in 1..list.Length do
-    try 
-      ans <- ans @ [(list |> List.skip (i-1) |> List.take elementCount)]
-    with 
-    | _ -> ()
+    try ans <- ans @ [(list |> List.skip (i-1) |> List.take elementCount)]
+    with _ -> ()
   ans
 
 let straightRuns = elementwise allFaces 5
 
-let ofAKind groupByFn a cards =
+let ofAKind groupByFn conditionPair cards =
   cards |> List.groupBy groupByFn 
   |> List.map (fun (_,values) -> values |> List.length) |> List.countBy id 
-  |> List.max |> Some |> Option.filter (fun p -> p = a) 
+  |> List.max |> Some |> Option.filter (fun maxPair -> maxPair = conditionPair) 
 // before we were doing match something with (3,1) -> Some answer. basically if it is the right pair then return some
 // we can shorten that match down, by converting output to an option, then filtering based on whether the pair
 // matches the input pair condition 
 
 let (| Straight | _ |) (cards: Card list) =
-  straightRuns |> List.contains (cards |> List.map fst) |> function
-  | true -> Some cards
-  | false -> None
+  straightRuns |> List.contains (cards |> List.map fst) |> Some |> Option.filter id
 
 let (| Flush | _ |) (cards: Card list) =
   cards |> ofAKind snd (5,1)
