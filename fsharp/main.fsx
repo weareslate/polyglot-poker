@@ -19,6 +19,18 @@ type Suit = Hearts | Spades | Diamonds | Clubs
 
 type Card = Face * Suit
 
+type WinningHands =
+  | HighCard
+  | Pair
+  | TwoPair
+  | ThreeOfAKind
+  | FourOfAKind
+  | FullHouse
+  | Flush
+  | Straight
+  | StraightFlush
+  | RoyalFlush
+
 type Hand = Card list
 
 let parsingFaceMap =
@@ -123,28 +135,31 @@ let (| TwoPair | _ |) (cards: Card list) =
 let (| Pair | _ |) (cards: Card list) =
   cards |> ofAKind fst (2,1)
 
-let (| HighCard | _ |) (cards: Card list) =
+let (| HighCard |) (cards: Card list) =
   cards |> ofAKind fst (1,5)
 
 let handInput = fsi.CommandLineArgs.[1]
 
 let theTwoHands = understandHands handInput
 
-let displayHand = function // this is a match...with expression, but because it assumes its taking first arg, we just shorten to function
-  | Straight _ & Flush cards -> printfn "Have straight flush"
-  | Flush cards -> printfn "Have flush"
-  | Straight cards -> printfn "Have straight"
-  | FourOfAKind cards-> printfn "Have four of kind"
-  | ThreeOfAKind cards -> printfn "Have three of kind"
-  | TwoPair cards -> printfn "Have two pair"
-  | Pair cards -> printfn "Have pair"
-  | HighCard cards -> printfn "Have high card"
-  | _ -> printfn "You have no cards"
+let obtainHand = function // this is a match...with expression, but because it assumes its taking first arg, we just shorten to function
+  | Straight _ & Flush cards -> StraightFlush
+  | Straight cards -> StraightFlush
+  | Flush cards -> Flush
+  | ThreeOfAKind _ & Pair cards -> FullHouse
+  | FourOfAKind cards-> FourOfAKind
+  | ThreeOfAKind cards -> ThreeOfAKind
+  | TwoPair cards -> TwoPair
+  | Pair cards -> Pair
+  | HighCard cards -> HighCard
 
 match theTwoHands with
 | Some hands -> 
     let firstHand = hands.[0]
-    displayHand firstHand 
     let secondHand = hands.[1]
-    displayHand secondHand
+    let whoWon = obtainHand firstHand  > obtainHand secondHand
+    if whoWon then
+      printfn "Player 1, with %A\nPlayer 2 had %A" (obtainHand firstHand) (obtainHand secondHand)
+    else 
+      printfn "Player 2, with %A\nPlayer 1 had %A" (obtainHand secondHand) (obtainHand firstHand)
 | None -> printfn "No combinations"
