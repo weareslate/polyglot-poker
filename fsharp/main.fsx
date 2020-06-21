@@ -24,10 +24,10 @@ type WinningHands =
   | Pair
   | TwoPair
   | ThreeOfAKind
-  | FourOfAKind
-  | FullHouse
-  | Flush
   | Straight
+  | Flush
+  | FullHouse
+  | FourOfAKind
   | StraightFlush
   | RoyalFlush
 
@@ -117,6 +117,14 @@ let ofAKind groupByFn conditionPair cards =
 // we can shorten that match down, by converting output to an option, then filtering based on whether the pair
 // matches the input pair condition 
 
+let (| RoyalFlush | _ |) (cards: Card list) =
+  let highestStraight = [[Ace;King;Queen;Jack;Ten]] |> List.contains (cards |> List.map fst)
+  let allSuits = cards |> ofAKind snd (5,1)
+  if highestStraight && allSuits.IsSome then
+    Some cards
+  else
+    None
+
 let (| Straight | _ |) (cards: Card list) =
   straightRuns |> List.contains (cards |> List.map fst) |> Some |> Option.filter id
 
@@ -143,11 +151,12 @@ let handInput = fsi.CommandLineArgs.[1]
 let theTwoHands = understandHands handInput
 
 let obtainHand = function // this is a match...with expression, but because it assumes its taking first arg, we just shorten to function
+  | RoyalFlush cards -> RoyalFlush
   | Straight _ & Flush cards -> StraightFlush
-  | Straight cards -> StraightFlush
-  | Flush cards -> Flush
-  | ThreeOfAKind _ & Pair cards -> FullHouse
   | FourOfAKind cards-> FourOfAKind
+  | Flush cards -> Flush
+  | Straight cards -> StraightFlush
+  | ThreeOfAKind _ & Pair cards -> FullHouse
   | ThreeOfAKind cards -> ThreeOfAKind
   | TwoPair cards -> TwoPair
   | Pair cards -> Pair
