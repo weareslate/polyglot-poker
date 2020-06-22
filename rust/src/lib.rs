@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
@@ -46,12 +45,12 @@ pub fn hand_score<'a>(hand: &'a str, index: usize) -> (Vec<usize>, usize) {
     let (suits, ranks, mut freq) = parse(hand);
     let high_card = *ranks.last().unwrap();
     if suits.len() == 1 {
-        freq[0] = freq[0] + 2;
-        freq[1] = freq[1] + 2;
+        freq[0] += 2;
+        freq[1] += 2;
     }
     if consecutive(ranks) {
-        freq[0] = freq[0] + 2;
-        freq[1] = freq[1] + 1;
+        freq[0] += 2;
+        freq[1] += 1;
     }
     freq.push(high_card);
     (freq, index)
@@ -70,6 +69,7 @@ pub fn winning_hands<'a>(hands: &[&'a str]) -> Option<Vec<&'a str>> {
 
 pub fn main() {
     // TODO: handle multiple winners
-    let resp = winning_hands(&["10D JD KD QD AD", "2S 4C 4S 4H 4D", "3S 4S 5D 6H JH"]);
-    assert_eq!(resp, &["10D JD KD QD AD"]);
+    let resp = winning_hands(&["10D JD KD QD AD", "2S 4C 4S 4H 4D", "3S 4S 5D 6H JH"]).unwrap();
+    assert_eq!(resp, vec!["10D JD KD QD AD"]);
 }
+
