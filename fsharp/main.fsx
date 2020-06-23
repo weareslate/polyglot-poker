@@ -1,5 +1,6 @@
 open System;
 open System.Text.RegularExpressions;
+
 type Face =
   | Two
   | Three
@@ -23,13 +24,13 @@ type WinningHands =
   | HighCard of Card
   | Pair of Card * Card
   | TwoPair of (Card * Card) * (Card * Card)
-  | ThreeOfAKind
-  | Straight
-  | Flush
-  | FullHouse
-  | FourOfAKind
-  | StraightFlush
-  | RoyalFlush
+  | ThreeOfAKind of Card * Card * Card
+  | Straight of Card * Card * Card * Card * Card
+  | Flush of Card * Card * Card * Card * Card
+  | FullHouse of (Card * Card * Card) * (Card * Card)
+  | FourOfAKind of Card * Card * Card * Card
+  | StraightFlush of Card * Card * Card * Card * Card
+  | RoyalFlush of Card * Card * Card * Card * Card
 
 type Hand = Card list
 
