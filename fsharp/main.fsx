@@ -1,5 +1,5 @@
 open System;
-
+open System.Text.RegularExpressions;
 type Face =
   | Two
   | Three
@@ -20,9 +20,9 @@ type Suit = Hearts | Spades | Diamonds | Clubs
 type Card = Face * Suit
 
 type WinningHands =
-  | HighCard
-  | Pair
-  | TwoPair
+  | HighCard of Card
+  | Pair of Card * Card
+  | TwoPair of (Card * Card) * (Card * Card)
   | ThreeOfAKind
   | Straight
   | Flush
@@ -59,26 +59,15 @@ let parsingSuitMap =
   ] |> Map.ofList
 
 let parseCard (card: string) =
-  let parts = 
-    let split = card |> Seq.toList
-    match card.Length with
-    | 2 -> Some (split |> List.map string) // ["4";"S"]
-    | 3 -> Some ([new string [|for c in split.[0..1] -> c|]; split.[2] |> string]) // ["10"; "H"]
-    | _ -> None
+  let (face,suit) = 
+    let cardRegex = Regex("^(?<face>(\\d+|a|j|q|k))(?<suit>[a-z])$", RegexOptions.IgnoreCase)
+    let matchedGroups = cardRegex.Match(card)
+    matchedGroups.Groups.["face"].Value,matchedGroups.Groups.["suit"].Value
 
-  match parts with
-  | Some parts -> 
-      let first = parts.[0]
-      let second = parts.[1]
-
-      let tryFirst = parsingFaceMap.TryFind first // option face
-      let trySecond = parsingSuitMap.TryFind second // option suit
-
-      tryFirst |> Option.bind (fun first -> // real value here
-        trySecond |> Option.map (fun second -> // real value 
-          first,second
-        ))
-  | None -> None
+  face |> parsingFaceMap.TryFind |> Option.bind (fun first -> // real value here
+    suit |> parsingSuitMap.TryFind |> Option.map (fun second -> // real value 
+      first,second
+    ))
 
 let collectHand items =
   Option.map (fun items -> items |> List.ofSeq) items
