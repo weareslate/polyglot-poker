@@ -22,15 +22,16 @@ type Card = Face * Suit
 
 type WinningHands =
   | HighCard of Card
-  | Pair of Card * Card
-  | TwoPair of (Card * Card) * (Card * Card)
-  | ThreeOfAKind of Card * Card * Card
-  | Straight of Card * Card * Card * Card * Card
-  | Flush of Card * Card * Card * Card * Card
-  | FullHouse of (Card * Card * Card) * (Card * Card)
-  | FourOfAKind of Card * Card * Card * Card
-  | StraightFlush of Card * Card * Card * Card * Card
-  | RoyalFlush of Card * Card * Card * Card * Card
+  | Pair of Card
+  | TwoPair of Card * Card
+  | ThreeOfAKind of Card
+  | Straight of Card list
+  | Flush of Card list
+  | FullHouse of Card * Card
+  | FourOfAKind of Card
+  | StraightFlush of Card list
+  | RoyalFlush of Card list
+  | NoHand
 
 type Hand = Card list
 
@@ -60,15 +61,24 @@ let parsingSuitMap =
   ] |> Map.ofList
 
 let parseCard (card: string) =
-  let (face,suit) = 
+  let possibleCard = 
     let cardRegex = Regex("^(?<face>(\\d+|a|j|q|k))(?<suit>[a-z])$", RegexOptions.IgnoreCase)
     let matchedGroups = cardRegex.Match(card)
-    matchedGroups.Groups.["face"].Value,matchedGroups.Groups.["suit"].Value
+    let faceGroup = matchedGroups.Groups.["face"]
+    let suitGroup = matchedGroups.Groups.["suit"]
+    if suitGroup.Success && faceGroup.Success then
+      Some (faceGroup.Value, suitGroup.Value)
+    else 
+      None
 
-  face |> parsingFaceMap.TryFind |> Option.bind (fun first -> // real value here
-    suit |> parsingSuitMap.TryFind |> Option.map (fun second -> // real value 
-      first,second
-    ))
+  match possibleCard with
+  | Some (face, suit) ->
+      face |> parsingFaceMap.TryFind |> Option.bind (fun first -> // real value here
+        suit |> parsingSuitMap.TryFind |> Option.map (fun second -> // real value 
+          first,second
+        ))
+  | None -> None
+
 
 let collectHand items =
   Option.map (fun items -> items |> List.ofSeq) items
@@ -116,41 +126,47 @@ let (| RoyalFlush | _ |) (cards: Card list) =
     None
 
 let (| Straight | _ |) (cards: Card list) =
-  straightRuns |> List.contains (cards |> List.map fst) |> Some |> Option.filter id
+  if (straightRuns |> List.contains (cards |> List.map fst)) then
+    Some cards
+  else
+    None
 
-let (| Flush | _ |) (cards: Card list) =
-  cards |> ofAKind snd (5,1)
+let optionMapSortCards selector (cards: Card list)  = cards |> selector |> Option.map (fun _ -> cards |> List.sortByDescending fst)
 
-let (| FourOfAKind | _ |) (cards: Card list) =
-  cards |> ofAKind fst (4,1)
- 
-let (| ThreeOfAKind | _ |) (cards: Card list) =
-  cards |> ofAKind fst (3,1)
-
-let (| TwoPair | _ |) (cards: Card list) = 
-  cards |> ofAKind fst (2,2)
-
-let (| Pair | _ |) (cards: Card list) =
-  cards |> ofAKind fst (2,1)
-
-let (| HighCard |) (cards: Card list) =
-  cards |> ofAKind fst (1,5)
+let (| Flush | _ |) =  ofAKind snd (5,1) |> optionMapSortCards
+let (| FourOfAKind | _ |) = ofAKind fst (4,1) |> optionMapSortCards
+let (| ThreeOfAKind | _ |) = ofAKind fst (3,1) |> optionMapSortCards
+let (| TwoPair | _ |) = ofAKind fst (2,2) |> optionMapSortCards
+let (| Pair | _ |) = ofAKind fst (2,1) |> optionMapSortCards
+let (| HighCard | _ |) = ofAKind fst (1,5) |> optionMapSortCards
 
 let handInput = fsi.CommandLineArgs.[1]
 
 let theTwoHands = understandHands handInput
 
+let grabCardFor selector count cards =
+  cards 
+  |> List.groupBy selector 
+  |> List.map (fun (_, cards) -> cards.Length, cards)
+  |> List.filter (fun (cardCount, _) -> cardCount = count)
+  |> List.map snd
+  |> List.sortByDescending (List.head >> selector)
+
+let getFirstCard = List.head >> List.head
+let getSecondCard = List.item 1 >> List.head       
+
 let obtainHand = function // this is a match...with expression, but because it assumes its taking first arg, we just shorten to function
-  | RoyalFlush cards -> RoyalFlush
-  | Straight _ & Flush cards -> StraightFlush
-  | FourOfAKind cards-> FourOfAKind
-  | Flush cards -> Flush
-  | Straight cards -> StraightFlush
-  | ThreeOfAKind _ & Pair cards -> FullHouse
-  | ThreeOfAKind cards -> ThreeOfAKind
-  | TwoPair cards -> TwoPair
-  | Pair cards -> Pair
-  | HighCard cards -> HighCard
+  | RoyalFlush cards -> RoyalFlush cards
+  | Straight _ & Flush cards -> StraightFlush (cards |> List.sortBy fst)
+  | FourOfAKind cards -> FourOfAKind (cards |> grabCardFor fst 4 |> getFirstCard)
+  | Flush cards -> Flush cards
+  | Straight cards -> StraightFlush cards
+  | ThreeOfAKind _ & Pair cards -> FullHouse ((cards |> grabCardFor fst 3 |> getFirstCard), (cards |> grabCardFor fst 2 |> getFirstCard))
+  | ThreeOfAKind cards -> ThreeOfAKind (cards |> grabCardFor fst 3 |> getFirstCard)
+  | TwoPair cards -> TwoPair (cards |> grabCardFor fst 2 |> getFirstCard, cards |> grabCardFor fst 2 |> getSecondCard)
+  | Pair cards -> Pair (cards |> grabCardFor fst 1 |> getFirstCard)
+  | HighCard cards -> HighCard (cards |> grabCardFor fst 1  |> getFirstCard)
+  | _ -> NoHand
 
 match theTwoHands with
 | Some hands -> 
@@ -158,7 +174,7 @@ match theTwoHands with
     let secondHand = hands.[1]
     let whoWon = obtainHand firstHand  > obtainHand secondHand
     if whoWon then
-      printfn "Player 1, with %A\nPlayer 2 had %A" (obtainHand firstHand) (obtainHand secondHand)
+      printfn "Player 1 wins, with %A\nPlayer 2 had %A" (obtainHand firstHand) (obtainHand secondHand)
     else 
-      printfn "Player 2, with %A\nPlayer 1 had %A" (obtainHand secondHand) (obtainHand firstHand)
+      printfn "Player 2 wins, with %A\nPlayer 1 had %A" (obtainHand secondHand) (obtainHand firstHand)
 | None -> printfn "No combinations"
